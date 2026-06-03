@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken"
 import { NextResponse } from "next/server"
 import connectDB from "@/lib/mongodb"
-import { normalizeCampusId } from "@/lib/totem-labels"
+import { getCampusIdVariants, normalizeCampusId } from "@/lib/totem-labels"
 import Admin from "@/models/Admin"
 
 export type AuthPayload = {
@@ -16,11 +16,13 @@ export function isSuperAdmin(auth: AuthPayload): boolean {
   return auth.rol === "superadmin"
 }
 
-export function getTotemListFilter(auth: AuthPayload): Record<string, string> {
+export function getTotemListFilter(
+  auth: AuthPayload
+): Record<string, unknown> {
   if (isSuperAdmin(auth)) return {}
   const campusId = auth.campus_id ? normalizeCampusId(auth.campus_id) : null
   if (!campusId) return { campus_id: "__none__" }
-  return { campus_id: campusId }
+  return { campus_id: { $in: getCampusIdVariants(campusId) } }
 }
 
 export function canAccessCampus(auth: AuthPayload, campusId: string): boolean {

@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
 import Totem from "@/models/Totem"
+import { getCampusIdVariants } from "@/lib/totem-labels"
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -14,7 +15,7 @@ export async function findDuplicateTotemByName(
   if (!trimmed) return null
 
   const filter: Record<string, unknown> = {
-    campus_id,
+    campus_id: { $in: getCampusIdVariants(campus_id) },
     nombre: { $regex: new RegExp(`^${escapeRegex(trimmed)}$`, "i") },
   }
 

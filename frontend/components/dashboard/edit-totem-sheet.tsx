@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils"
 import { SEDES, getSedeNameFromId } from "@/lib/totem-labels"
 import { TOTEM_TEMPLATES, getTemplateById } from "@/lib/totem-templates"
 import { buildMediaMapsFromArchivos } from "@/lib/totem-archivos"
+import { copyToClipboard } from "@/lib/copy-to-clipboard"
 import { fetchWithAuth, toastError, toastSuccess } from "@/lib/fetch-auth"
 import { TotemMediaSlot } from "@/components/dashboard/totem-media-slot"
 import { useLoadingOverlay } from "@/components/dashboard/loading-overlay-context"
@@ -134,8 +135,13 @@ export function EditTotemSheet({
     return { images, videos }
   }
 
-  const handleCopy = (text: string, type: "user" | "password") => {
-    navigator.clipboard.writeText(text)
+  const handleCopy = async (text: string, type: "user" | "password") => {
+    const ok = await copyToClipboard(text)
+    if (!ok) {
+      toastError("No se pudo copiar.")
+      return
+    }
+    toastSuccess(type === "user" ? "Usuario copiado" : "Contraseña copiada")
     if (type === "user") {
       setCopiedUser(true)
       setTimeout(() => setCopiedUser(false), 2000)

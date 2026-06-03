@@ -40,6 +40,7 @@ import { TOTEM_TEMPLATES, getTemplateById } from "@/lib/totem-templates"
 import { TotemMediaSlot } from "@/components/dashboard/totem-media-slot"
 import { ConfirmCreateTotemDialog } from "@/components/dashboard/confirm-create-totem-dialog"
 import { useLoadingOverlay } from "@/components/dashboard/loading-overlay-context"
+import { copyToClipboard } from "@/lib/copy-to-clipboard"
 import { fetchWithAuth, toastError, toastSuccess } from "@/lib/fetch-auth"
 
 type Estado = "Activo" | "Inactivo" | "En Mantenimiento"
@@ -489,9 +490,13 @@ export function NewTotemSheet({
     }
   }, [open, isSuperAdmin, lockedCampusId])
 
-  const handleCopy = (text: string, type: "user" | "password") => {
-    navigator.clipboard.writeText(text)
-
+  const handleCopy = async (text: string, type: "user" | "password") => {
+    const ok = await copyToClipboard(text)
+    if (!ok) {
+      toastError("No se pudo copiar.")
+      return
+    }
+    toastSuccess(type === "user" ? "Usuario copiado" : "Contraseña copiada")
     if (type === "user") {
       setCopiedUser(true)
       setTimeout(() => setCopiedUser(false), 2000)
@@ -553,6 +558,7 @@ export function NewTotemSheet({
       formData.append("estado", selectedEstado)
       formData.append("usuario", credentials.username)
       formData.append("contraseña", credentials.password)
+      formData.append("contrasena", credentials.password)
       formData.append("mostrarDesde", fechaInicioContenido)
       formData.append("mostrarHasta", fechaFinContenido)
 
@@ -581,6 +587,7 @@ export function NewTotemSheet({
 
       const newTotem = await response.json()
       toastSuccess("Tótem creado correctamente")
+      setConfirmOpen(false)
       await onSave?.(newTotem)
       onOpenChange(false)
     } catch (error) {
@@ -982,6 +989,7 @@ export function NewTotemSheet({
         plantillaId={selectedTemplate || ""}
         estado={selectedEstado}
         onConfirm={handleConfirmCreate}
+        isSubmitting={isSubmitting}
       />
     </Sheet>
   )

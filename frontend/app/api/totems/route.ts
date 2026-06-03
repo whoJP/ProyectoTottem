@@ -6,6 +6,10 @@ import { normalizeCampusId, normalizePlantillaId } from "@/lib/totem-labels"
 import { getTemplateRequirements } from "@/lib/totem-templates"
 import Totem from "@/models/Totem"
 import { findDuplicateTotemByName } from "@/lib/totem-duplicate-name"
+import {
+  generateTotemCredentials,
+  readPasswordFromFormData,
+} from "@/lib/totem-credentials"
 
 export const runtime = "nodejs"
 
@@ -48,7 +52,7 @@ export async function POST(request: Request) {
 
     const formData = await request.formData()
 
-    const nombre = formData.get("nombre") as string
+    const nombre = ((formData.get("nombre") as string) || "").trim()
     let totem_id = (formData.get("totem_id") as string)?.trim()
     if (!totem_id) {
       totem_id = `TOTEM-${crypto.randomUUID()}`
@@ -64,11 +68,31 @@ export async function POST(request: Request) {
       )
     }
     const plantilla = normalizePlantillaId(formData.get("plantilla") as string)
-    const estado = formData.get("estado") as string
-    const usuario = formData.get("usuario") as string
-    const contraseña = formData.get("contraseña") as string
+    const estado = ((formData.get("estado") as string) || "Activo").trim()
+    let usuario = ((formData.get("usuario") as string) || "").trim()
+    let contraseña = readPasswordFromFormData(formData).trim()
     const mostrarDesde = formData.get("mostrarDesde") as string
     const mostrarHasta = formData.get("mostrarHasta") as string
+
+    if (!nombre) {
+      return NextResponse.json(
+        { error: "El nombre del tótem es obligatorio." },
+        { status: 400 }
+      )
+    }
+
+    if (!["Activo", "Inactivo", "En Mantenimiento"].includes(estado)) {
+      return NextResponse.json(
+        { error: "Estado del tótem inválido." },
+        { status: 400 }
+      )
+    }
+
+    if (!usuario || !contraseña) {
+      const generated = generateTotemCredentials()
+      usuario = usuario || generated.usuario
+      contraseña = contraseña || generated.contraseña
+    }
 
     const archivosGuardados = await processTotemMediaFromForm(formData, nombre)
 

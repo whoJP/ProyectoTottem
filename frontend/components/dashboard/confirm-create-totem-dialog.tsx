@@ -19,7 +19,8 @@ type ConfirmCreateTotemDialogProps = {
   sedeId: string
   plantillaId: string
   estado: string
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
+  isSubmitting?: boolean
 }
 
 export function ConfirmCreateTotemDialog({
@@ -30,6 +31,7 @@ export function ConfirmCreateTotemDialog({
   plantillaId,
   estado,
   onConfirm,
+  isSubmitting = false,
 }: ConfirmCreateTotemDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -67,12 +69,12 @@ export function ConfirmCreateTotemDialog({
           <Button
             type="button"
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={() => {
-              onConfirm()
-              onOpenChange(false)
+            disabled={isSubmitting}
+            onClick={async () => {
+              await onConfirm()
             }}
           >
-            Sí, crear tótem
+            {isSubmitting ? "Creando..." : "Sí, crear tótem"}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

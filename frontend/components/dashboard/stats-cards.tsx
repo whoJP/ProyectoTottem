@@ -38,7 +38,12 @@ function StatCard({
         <p className="text-sm text-muted-foreground">{label}</p>
       </div>
       {interactive && (
-        <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        <div className="flex items-center gap-1 shrink-0 text-purple-500">
+          <span className="text-[10px] font-medium uppercase tracking-wide hidden sm:inline">
+            Ver lista
+          </span>
+          <ChevronRight className="w-4 h-4" />
+        </div>
       )}
     </>
   )
@@ -49,10 +54,11 @@ function StatCard({
         type="button"
         onClick={onClick}
         className={cn(
-          "group flex items-center gap-4 p-4 w-full rounded-xl border border-border bg-card text-left",
-          "transition-all hover:border-purple-500/40 hover:shadow-md hover:shadow-purple-500/5",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          "group flex items-center gap-4 p-4 w-full rounded-xl border-2 border-purple-500/35 bg-card text-left cursor-pointer",
+          "transition-all hover:border-purple-500/60 hover:shadow-md hover:shadow-purple-500/10",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
         )}
+        aria-label={`${label}: ${value}. Pulsa para ver el listado.`}
       >
         {content}
       </button>

@@ -2,6 +2,10 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth"
 import { subirArchivoAGridFS } from "@/lib/gridfs"
+import {
+  getAllowedTotemIdentifiers,
+  notificationFilterForTotemIds,
+} from "@/lib/notification-access"
 import { resolveNotificationFileId } from "@/lib/resolve-notification-file"
 import Notification from "@/models/Notification"
 
@@ -13,8 +17,12 @@ export async function GET(request: Request) {
 
   try {
     await connectDB()
-    const count = await Notification.countDocuments()
-    const itemsRaw = await Notification.find()
+
+    const allowedTotemIds = await getAllowedTotemIdentifiers(authResult.auth)
+    const notifFilter = notificationFilterForTotemIds(allowedTotemIds)
+
+    const count = await Notification.countDocuments(notifFilter)
+    const itemsRaw = await Notification.find(notifFilter)
       .sort({ createdAt: -1 })
       .limit(50)
       .lean()
