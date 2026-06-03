@@ -11,6 +11,7 @@ next.user-config.*
 .env*.local
 
 # Common ignores
+pnpm-lock.yaml
 node_modules
 .next/
 .DS_Store
