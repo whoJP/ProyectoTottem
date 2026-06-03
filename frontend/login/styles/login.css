@@ -1,0 +1,674 @@
+/* login: estilos acotados a body.totem-login-page (no afectan el resto del sitio) */
+body.totem-login-page,
+body.totem-login-page * {
+    box-sizing: border-box;
+}
+
+body.totem-login-page {
+    margin: 0;
+    padding: 0;
+    background: radial-gradient(circle at top, #0f172a, #020617);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+body.totem-login-page .totem-login-theme-slot {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 50;
+}
+
+/* ——— Modo claro: página completa (no solo la tarjeta) ——— */
+html:not(.dark) body.totem-login-page {
+    background:
+        radial-gradient(ellipse 120% 70% at 50% -15%, rgba(79, 124, 255, 0.14), transparent 55%),
+        radial-gradient(ellipse 60% 50% at 100% 80%, rgba(109, 92, 255, 0.1), transparent 50%),
+        radial-gradient(ellipse 50% 40% at 0% 60%, rgba(34, 197, 94, 0.06), transparent 45%),
+        linear-gradient(165deg, #dce4ef 0%, #eef2f7 42%, #f8fafc 100%);
+    color: #0f172a;
+}
+
+html:not(.dark) body.totem-login-page .page-loader-overlay {
+    background:
+        radial-gradient(ellipse 120% 70% at 50% -15%, rgba(79, 124, 255, 0.14), transparent 55%),
+        linear-gradient(165deg, #dce4ef 0%, #eef2f7 42%, #f8fafc 100%);
+}
+
+html:not(.dark) body.totem-login-page .page-loader-spinner {
+    border-color: rgba(15, 23, 42, 0.1);
+    border-top-color: #4f7cff;
+}
+
+html:not(.dark) body.totem-login-page .login-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.05),
+        0 12px 40px -8px rgba(79, 124, 255, 0.2),
+        0 24px 48px -16px rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+html:not(.dark) body.totem-login-page .title {
+    color: #0f172a;
+}
+
+html:not(.dark) body.totem-login-page .title span {
+    color: #4f46e5;
+}
+
+html:not(.dark) body.totem-login-page .subtitle {
+    color: #475569;
+}
+
+html:not(.dark) body.totem-login-page .label {
+    color: #334155;
+}
+
+html:not(.dark) body.totem-login-page .input {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+}
+
+html:not(.dark) body.totem-login-page .input::placeholder {
+    color: #64748b;
+}
+
+html:not(.dark) body.totem-login-page .input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+html:not(.dark) body.totem-login-page .icon,
+html:not(.dark) body.totem-login-page .eye {
+    color: #475569;
+}
+
+html:not(.dark) body.totem-login-page .link {
+    color: #475569;
+}
+
+html:not(.dark) body.totem-login-page .link:hover {
+    color: #1e293b;
+}
+
+html:not(.dark) body.totem-login-page .footer {
+    color: #64748b;
+}
+
+/* Modal recuperación / reset (comparten clases) */
+body.totem-login-page .login-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.75);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-overlay {
+    background: rgba(15, 23, 42, 0.35);
+}
+
+body.totem-login-page .login-modal-card {
+    width: 380px;
+    max-width: calc(100vw - 32px);
+    padding: 36px 30px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #0b1220, #020617);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+    color: white;
+    position: relative;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 12px 40px -8px rgba(79, 124, 255, 0.2);
+    color: #0f172a;
+}
+
+body.totem-login-page .login-modal-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    display: block;
+    margin: 0 auto 18px;
+    object-fit: contain;
+}
+
+body.totem-login-page .login-modal-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: inherit;
+}
+
+body.totem-login-page .login-modal-title-accent {
+    color: #6d5cff;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-title-accent {
+    color: #4f46e5;
+}
+
+body.totem-login-page .login-modal-subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 24px;
+    line-height: 1.45;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-subtitle {
+    color: #475569;
+}
+
+body.totem-login-page .login-modal-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #9ca3af;
+    margin-bottom: 6px;
+    display: block;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-label {
+    color: #334155;
+}
+
+body.totem-login-page .login-modal-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    color: white;
+    outline: none;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-input {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+}
+
+body.totem-login-page .login-modal-input::placeholder {
+    color: #6b7280;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-input::placeholder {
+    color: #64748b;
+}
+
+body.totem-login-page .login-modal-btn-primary {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(90deg, #4f7cff, #6d5cff);
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+body.totem-login-page .login-modal-btn-secondary {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: linear-gradient(90deg, #1f2937, #111827);
+    color: #9ca3af;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-btn-secondary {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+}
+
+body.totem-login-page .login-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-close {
+    color: #64748b;
+}
+
+body.totem-login-page .login-modal-close:hover {
+    color: #e5e7eb;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-close:hover {
+    color: #0f172a;
+}
+
+body.totem-login-page .login-modal-footer {
+    margin-top: 16px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-footer {
+    color: #64748b;
+}
+
+body.totem-login-page .login-modal-error {
+    color: #ff4d4d;
+    font-size: 11px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+body.totem-login-page .login-modal-success {
+    color: #16a34a;
+    font-size: 12px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 8px;
+    padding: 9px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+}
+
+html:not(.dark) body.totem-login-page .login-modal-success {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+}
+
+/* Toggle tema en login (coherente con fondo claro/oscuro) */
+html:not(.dark) body.totem-login-page .totem-login-theme-slot button {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+body.totem-login-page .totem-login-theme-slot button:hover {
+    filter: brightness(1.05);
+}
+
+body.totem-login-page .login-modal-input-wrap {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+body.totem-login-page .login-modal-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.65;
+    display: flex;
+    align-items: center;
+    color: inherit;
+    pointer-events: none;
+}
+
+body.totem-login-page .login-modal-input.with-icon {
+    padding-left: 40px;
+}
+
+body.totem-login-page .totem-login-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+body.totem-login-page .login-session-banner {
+    width: 100%;
+    max-width: 430px;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    background: rgba(245, 158, 11, 0.12);
+    color: #fcd34d;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    text-align: center;
+}
+
+html:not(.dark) body.totem-login-page .login-session-banner {
+    border-color: rgba(217, 119, 6, 0.35);
+    background: rgba(251, 191, 36, 0.15);
+    color: #92400e;
+}
+
+body.totem-login-page .page-loader-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top, #0f172a, #020617);
+}
+
+body.totem-login-page .page-loader-spinner {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-top-color: rgba(109, 92, 255, 0.85);
+    animation: totem-login-page-loader-spin 0.75s linear infinite;
+}
+
+@keyframes totem-login-page-loader-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+body.totem-login-page .login-card {
+    width: 400px;
+    padding: 40px 30px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #0b1220, #020617);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    color: white;
+}
+
+body.totem-login-page .logo {
+    width: 55px;
+    height: 55px;
+    border-radius: 15px;
+    display: block;
+    margin: 0 auto 20px;
+    object-fit: contain;
+}
+
+body.totem-login-page .title {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.35;
+}
+
+body.totem-login-page .title span {
+    color: #6d5cff;
+}
+
+body.totem-login-page .subtitle {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #9ca3af;
+    margin-bottom: 25px;
+    line-height: 1.45;
+}
+
+body.totem-login-page .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #9ca3af;
+    margin-bottom: 6px;
+    display: block;
+}
+
+body.totem-login-page .input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+body.totem-login-page .input {
+    width: 100%;
+    padding: 12px 40px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+    color: white;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.totem-login-page .input::placeholder {
+    color: #6b7280;
+}
+
+body.totem-login-page .input:focus {
+    border-color: rgba(109, 92, 255, 0.35);
+    box-shadow: 0 0 0 1px rgba(109, 92, 255, 0.2);
+}
+
+body.totem-login-page .input:focus-visible {
+    outline: 2px solid rgba(109, 92, 255, 0.42);
+    outline-offset: 2px;
+}
+
+body.totem-login-page .icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+}
+
+body.totem-login-page .eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    opacity: 0.6;
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: opacity 0.15s ease, box-shadow 0.2s ease;
+}
+
+body.totem-login-page .eye:hover {
+    opacity: 0.85;
+}
+
+body.totem-login-page .eye:focus-visible {
+    outline: none;
+    opacity: 0.95;
+    box-shadow: 0 0 0 2px rgba(109, 92, 255, 0.4);
+}
+
+body.totem-login-page .button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    margin-top: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+    background: linear-gradient(90deg, #4f7cff, #6d5cff);
+    transition:
+        background 0.28s ease,
+        box-shadow 0.28s ease,
+        border-color 0.28s ease,
+        opacity 0.2s ease,
+        filter 0.2s ease,
+        transform 0.2s ease;
+}
+
+body.totem-login-page .button:hover:not(:disabled) {
+    filter: brightness(1.04);
+}
+
+body.totem-login-page .button:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px rgba(15, 23, 42, 0.95),
+        0 0 0 4px rgba(109, 92, 255, 0.38);
+}
+
+body.totem-login-page .button:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+}
+
+body.totem-login-page .button--result-error {
+    background: linear-gradient(90deg, #dc2626, #b91c1c);
+    border-color: rgba(254, 202, 202, 0.45);
+    box-shadow:
+        0 0 0 2px rgba(248, 113, 113, 0.55),
+        0 10px 32px rgba(220, 38, 38, 0.42);
+    animation: totem-login-btn-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+body.totem-login-page .button--result-success {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border-color: rgba(187, 247, 208, 0.55);
+    box-shadow:
+        0 0 0 2px rgba(74, 222, 128, 0.55),
+        0 10px 32px rgba(22, 163, 74, 0.4);
+    animation: totem-login-btn-success-pop 0.55s ease-out both;
+}
+
+@keyframes totem-login-btn-shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    18% {
+        transform: translateX(-10px);
+    }
+    36% {
+        transform: translateX(10px);
+    }
+    54% {
+        transform: translateX(-6px);
+    }
+    72% {
+        transform: translateX(6px);
+    }
+}
+
+@keyframes totem-login-btn-success-pop {
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    40% {
+        transform: scale(1.03);
+        filter: brightness(1.12);
+    }
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+body.totem-login-page .link {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 15px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #9ca3af;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    border-radius: 6px;
+    padding: 6px 8px;
+    transition: color 0.15s ease, box-shadow 0.2s ease;
+}
+
+body.totem-login-page .link:hover {
+    color: #c4c9d1;
+}
+
+body.totem-login-page .link:focus-visible {
+    outline: none;
+    color: #e5e7eb;
+    box-shadow: 0 0 0 2px rgba(109, 92, 255, 0.38);
+}
+
+body.totem-login-page .footer {
+    margin-top: 25px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+body.totem-login-page .dot {
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+}
+
+body.totem-login-page .login-api-error {
+    color: #ff4d4d;
+    font-size: 12px;
+    background: rgba(255, 77, 77, 0.08);
+    border: 1px solid rgba(255, 77, 77, 0.25);
+    border-radius: 8px;
+    padding: 9px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    text-align: center;
+}
+
+html:not(.dark) body.totem-login-page .login-api-error {
+    color: #b91c1c;
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.35);
+}
