@@ -10,8 +10,13 @@ import {
   generateTotemCredentials,
   readPasswordFromFormData,
 } from "@/lib/totem-credentials"
+import {
+  formatApiError,
+  resolveCampusIdForStorage,
+} from "@/lib/totem-campus-storage"
 
 export const runtime = "nodejs"
+export const maxDuration = 60
 
 function normalizeTotemDocument(totem: {
   toObject: () => Record<string, unknown>
@@ -57,16 +62,17 @@ export async function POST(request: Request) {
     if (!totem_id) {
       totem_id = `TOTEM-${crypto.randomUUID()}`
     }
-    const campus_id = resolveCampusIdForWrite(
+    const campusNormalized = resolveCampusIdForWrite(
       authResult.auth,
       formData.get("campus_id") as string
     )
-    if (!campus_id) {
+    if (!campusNormalized) {
       return NextResponse.json(
         { error: "No tienes permiso para crear tótems en esta sede." },
         { status: 403 }
       )
     }
+    const campus_id = await resolveCampusIdForStorage(campusNormalized)
     const plantilla = normalizePlantillaId(formData.get("plantilla") as string)
     const estado = ((formData.get("estado") as string) || "Activo").trim()
     let usuario = ((formData.get("usuario") as string) || "").trim()
@@ -109,7 +115,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const duplicateName = await findDuplicateTotemByName(nombre, campus_id)
+    const duplicateName = await findDuplicateTotemByName(nombre, campusNormalized)
     if (duplicateName) {
       return NextResponse.json(
         {
@@ -149,7 +155,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error POST:", error)
     return NextResponse.json(
-      { error: "Error al crear el tótem" },
+      { error: formatApiError(error) },
       { status: 500 }
     )
   }

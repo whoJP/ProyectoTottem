@@ -9,6 +9,7 @@ import { getTemplateRequirements } from "@/lib/totem-templates"
 import Totem from "@/models/Totem"
 import Content from "@/models/Content"
 import { findDuplicateTotemByName } from "@/lib/totem-duplicate-name"
+import { resolveCampusIdForStorage } from "@/lib/totem-campus-storage"
 
 export const runtime = "nodejs"
 
@@ -50,16 +51,17 @@ export async function PUT(request: Request, { params }: RouteContext) {
     const formData = await request.formData()
 
     const nombre = (formData.get("nombre") as string)?.trim()
-    const campus_id = resolveCampusIdForWrite(
+    const campusNormalized = resolveCampusIdForWrite(
       authResult.auth,
       formData.get("campus_id") as string
     )
-    if (!campus_id) {
+    if (!campusNormalized) {
       return NextResponse.json(
         { error: "No tienes permiso para asignar otra sede a este tótem." },
         { status: 403 }
       )
     }
+    const campus_id = await resolveCampusIdForStorage(campusNormalized)
     const plantilla = normalizePlantillaId(formData.get("plantilla") as string)
     const estado = formData.get("estado") as string
     const usuario = (formData.get("usuario") as string)?.trim()
@@ -101,7 +103,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       )
     }
 
-    const duplicateName = await findDuplicateTotemByName(nombre, campus_id, id)
+    const duplicateName = await findDuplicateTotemByName(nombre, campusNormalized, id)
     if (duplicateName) {
       return NextResponse.json(
         {

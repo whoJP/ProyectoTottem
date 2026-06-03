@@ -577,11 +577,11 @@ export function NewTotemSheet({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
-        toastError(
+        const message =
           typeof errorData === "object" && errorData && "error" in errorData
-            ? (errorData as { error: string }).error
-            : "Error al crear el tótem."
-        )
+            ? String((errorData as { error: string }).error)
+            : `Error al crear el tótem (${response.status}).`
+        toastError(message)
         return
       }
 
