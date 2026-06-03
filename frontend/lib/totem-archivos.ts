@@ -2,6 +2,7 @@ export type TotemArchivoMeta = {
   slot: string
   tipo: string
   url: string
+  contentId?: string
 }
 
 export function slotToImageIndex(slot: string): number | null {

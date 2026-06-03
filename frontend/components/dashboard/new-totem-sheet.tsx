@@ -42,6 +42,11 @@ import { ConfirmCreateTotemDialog } from "@/components/dashboard/confirm-create-
 import { useLoadingOverlay } from "@/components/dashboard/loading-overlay-context"
 import { copyToClipboard } from "@/lib/copy-to-clipboard"
 import { fetchWithAuth, toastError, toastSuccess } from "@/lib/fetch-auth"
+import { uploadTotemMediaBatch } from "@/lib/upload-totem-media-client"
+import {
+  formatMaxMediaSizeMessage,
+  isMediaWithinChunkedLimit,
+} from "@/lib/upload-limits"
 
 type Estado = "Activo" | "Inactivo" | "En Mantenimiento"
 
@@ -130,11 +135,21 @@ export function NewTotemSheet({
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>, index: number) => {
     const selectedFile = event.target.files?.[0] || null
+    if (selectedFile && !isMediaWithinChunkedLimit(selectedFile.size)) {
+      toastError(formatMaxMediaSizeMessage())
+      event.target.value = ""
+      return
+    }
     setImagenes((prev) => ({ ...prev, [index]: selectedFile }))
   }
 
   const handleVideoChange = (event: ChangeEvent<HTMLInputElement>, index: number) => {
     const selectedFile = event.target.files?.[0] || null
+    if (selectedFile && !isMediaWithinChunkedLimit(selectedFile.size)) {
+      toastError(formatMaxMediaSizeMessage())
+      event.target.value = ""
+      return
+    }
     setVideos((prev) => ({ ...prev, [index]: selectedFile }))
   }
 
@@ -549,30 +564,37 @@ export function NewTotemSheet({
     showLoading("Creando tótem...")
 
     try {
-      const formData = new FormData()
-
-      formData.append("nombre", nombre)
-      formData.append("totem_id", `TOTEM-${crypto.randomUUID()}`)
-      formData.append("campus_id", selectedSede)
-      formData.append("plantilla", selectedTemplate)
-      formData.append("estado", selectedEstado)
-      formData.append("usuario", credentials.username)
-      formData.append("contraseña", credentials.password)
-      formData.append("contrasena", credentials.password)
-      formData.append("mostrarDesde", fechaInicioContenido)
-      formData.append("mostrarHasta", fechaFinContenido)
+      const filesToUpload: Array<{ formKey: string; file: File }> = []
 
       Object.entries(imagenes).forEach(([index, file]) => {
-        if (file) formData.append(`imagen${index}`, file)
+        if (file) filesToUpload.push({ formKey: `imagen${index}`, file })
       })
 
       Object.entries(videos).forEach(([index, file]) => {
-        if (file) formData.append(`video${index}`, file)
+        if (file) filesToUpload.push({ formKey: `video${index}`, file })
       })
+
+      const archivos = await uploadTotemMediaBatch(
+        filesToUpload,
+        nombre.trim(),
+        (label) => showLoading(label)
+      )
 
       const response = await fetchWithAuth("/api/totems", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre,
+          totem_id: `TOTEM-${crypto.randomUUID()}`,
+          campus_id: selectedSede,
+          plantilla: selectedTemplate,
+          estado: selectedEstado,
+          usuario: credentials.username,
+          contraseña: credentials.password,
+          mostrarDesde: fechaInicioContenido,
+          mostrarHasta: fechaFinContenido,
+          archivos,
+        }),
       })
 
       if (!response.ok) {
@@ -592,7 +614,9 @@ export function NewTotemSheet({
       onOpenChange(false)
     } catch (error) {
       if (error instanceof Error && error.message === "SESSION_EXPIRED") return
-      toastError("Error de conexión al crear el tótem.")
+      toastError(
+        error instanceof Error ? error.message : "Error de conexión al crear el tótem."
+      )
     } finally {
       setIsSubmitting(false)
       hideLoading()

@@ -4,6 +4,10 @@ import connectDB from "@/lib/mongodb"
 import { requireAuth, canAccessCampus, resolveCampusIdForWrite } from "@/lib/auth"
 import { eliminarArchivoGridFS } from "@/lib/gridfs"
 import { processTotemMediaFromForm, type TotemArchivoRef } from "@/lib/totem-media"
+import {
+  parseArchivosPayload,
+  replaceTotemArchivos,
+} from "@/lib/totem-media-upload"
 import { normalizeCampusId, normalizePlantillaId } from "@/lib/totem-labels"
 import { getTemplateRequirements } from "@/lib/totem-templates"
 import Totem from "@/models/Totem"
@@ -40,38 +44,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
 
     const contentType = request.headers.get("content-type") || ""
+    const isJson = contentType.includes("application/json")
+    const isMultipart = contentType.includes("multipart/form-data")
 
-    if (!contentType.includes("multipart/form-data")) {
+    if (!isJson && !isMultipart) {
       return NextResponse.json(
-        { error: "Se requiere FormData para actualizar el tótem" },
-        { status: 400 }
-      )
-    }
-
-    const formData = await request.formData()
-
-    const nombre = (formData.get("nombre") as string)?.trim()
-    const campusNormalized = resolveCampusIdForWrite(
-      authResult.auth,
-      formData.get("campus_id") as string
-    )
-    if (!campusNormalized) {
-      return NextResponse.json(
-        { error: "No tienes permiso para asignar otra sede a este tótem." },
-        { status: 403 }
-      )
-    }
-    const campus_id = await resolveCampusIdForStorage(campusNormalized)
-    const plantilla = normalizePlantillaId(formData.get("plantilla") as string)
-    const estado = formData.get("estado") as string
-    const usuario = (formData.get("usuario") as string)?.trim()
-    const contraseña = formData.get("contraseña") as string
-    const mostrarDesde = formData.get("mostrarDesde") as string
-    const mostrarHasta = formData.get("mostrarHasta") as string
-
-    if (!nombre || !estado || !usuario || !contraseña) {
-      return NextResponse.json(
-        { error: "Faltan campos obligatorios para actualizar" },
+        { error: "Se requiere JSON o FormData para actualizar el tótem" },
         { status: 400 }
       )
     }
@@ -84,11 +62,71 @@ export async function PUT(request: Request, { params }: RouteContext) {
       })
     )
 
-    const archivos = await processTotemMediaFromForm(
-      formData,
-      nombre,
-      existingArchivos
-    )
+    let nombre = ""
+    let campusNormalized: string | null = null
+    let campus_id = ""
+    let plantilla = ""
+    let estado = ""
+    let usuario = ""
+    let contraseña = ""
+    let mostrarDesde = ""
+    let mostrarHasta = ""
+    let archivos: TotemArchivoRef[] = []
+
+    if (isJson) {
+      let body: Record<string, unknown>
+      try {
+        body = (await request.json()) as Record<string, unknown>
+      } catch {
+        return NextResponse.json({ error: "JSON inválido." }, { status: 400 })
+      }
+
+      nombre = String(body.nombre ?? "").trim()
+      campusNormalized = resolveCampusIdForWrite(
+        authResult.auth,
+        String(body.campus_id ?? "")
+      )
+      plantilla = normalizePlantillaId(String(body.plantilla ?? ""))
+      estado = String(body.estado ?? "")
+      usuario = String(body.usuario ?? "").trim()
+      contraseña = String(body.contraseña ?? body.contrasena ?? "")
+      mostrarDesde = String(body.mostrarDesde ?? "")
+      mostrarHasta = String(body.mostrarHasta ?? "")
+
+      const parsed = parseArchivosPayload(body.archivos)
+      archivos = await replaceTotemArchivos(parsed, existingArchivos)
+    } else {
+      const formData = await request.formData()
+
+      nombre = (formData.get("nombre") as string)?.trim()
+      campusNormalized = resolveCampusIdForWrite(
+        authResult.auth,
+        formData.get("campus_id") as string
+      )
+      plantilla = normalizePlantillaId(formData.get("plantilla") as string)
+      estado = formData.get("estado") as string
+      usuario = (formData.get("usuario") as string)?.trim()
+      contraseña = formData.get("contraseña") as string
+      mostrarDesde = formData.get("mostrarDesde") as string
+      mostrarHasta = formData.get("mostrarHasta") as string
+
+      archivos = await processTotemMediaFromForm(formData, nombre, existingArchivos)
+    }
+
+    if (!campusNormalized) {
+      return NextResponse.json(
+        { error: "No tienes permiso para asignar otra sede a este tótem." },
+        { status: 403 }
+      )
+    }
+    campus_id = await resolveCampusIdForStorage(campusNormalized)
+
+    if (!nombre || !estado || !usuario || !contraseña) {
+      return NextResponse.json(
+        { error: "Faltan campos obligatorios para actualizar" },
+        { status: 400 }
+      )
+    }
 
     const req = getTemplateRequirements(plantilla)
     const imageCount = archivos.filter((a) => a.tipo === "imagen").length

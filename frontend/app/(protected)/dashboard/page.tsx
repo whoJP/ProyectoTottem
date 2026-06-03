@@ -72,10 +72,18 @@ export default function DashboardPage() {
               ? `/api/contents/file/${fileId}`
               : content?.url_contenido || ""
             if (!url) return null
+            const contentId =
+              typeof a.contentId === "object" && a.contentId && "_id" in a.contentId
+                ? String((a.contentId as { _id: unknown })._id)
+                : a.contentId
+                  ? String(a.contentId)
+                  : undefined
+
             return {
               slot: String(a.slot),
               tipo: String(a.tipo),
               url,
+              contentId,
             }
           })
           .filter((a): a is TotemArchivoMeta => a !== null)

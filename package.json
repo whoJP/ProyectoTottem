@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "cd frontend && npm run dev",
-    "install-all": "cd frontend && npm install",
+    "dev:kiosk": "cd Gestos_Voz && npm run dev",
+    "install-all": "cd frontend && npm install && cd ../Gestos_Voz && npm install",
     "build": "cd frontend && npm run build",
-    "start": "cd frontend && npm run start"
+    "build:kiosk": "cd Gestos_Voz && npm run build",
+    "start": "cd frontend && npm run start",
+    "start:kiosk": "cd Gestos_Voz && npm run start"
   }
 }

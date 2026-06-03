@@ -39,7 +39,17 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { SEDES, getSedeNameFromId } from "@/lib/totem-labels"
 import { TOTEM_TEMPLATES, getTemplateById } from "@/lib/totem-templates"
-import { buildMediaMapsFromArchivos } from "@/lib/totem-archivos"
+import {
+  buildMediaMapsFromArchivos,
+  slotToImageIndex,
+  slotToVideoIndex,
+} from "@/lib/totem-archivos"
+import { uploadTotemMediaFileClient } from "@/lib/upload-totem-media-client"
+import type { ClientTotemArchivoRef } from "@/lib/upload-totem-media-client"
+import {
+  formatMaxMediaSizeMessage,
+  isMediaWithinChunkedLimit,
+} from "@/lib/upload-limits"
 import { copyToClipboard } from "@/lib/copy-to-clipboard"
 import { fetchWithAuth, toastError, toastSuccess } from "@/lib/fetch-auth"
 import { notifyNotificationsChanged } from "@/lib/notifications-refresh"
@@ -154,12 +164,67 @@ export function EditTotemSheet({
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>, index: number) => {
     const selectedFile = event.target.files?.[0] || null
+    if (selectedFile && !isMediaWithinChunkedLimit(selectedFile.size)) {
+      toastError(formatMaxMediaSizeMessage())
+      event.target.value = ""
+      return
+    }
     setImagenes((prev) => ({ ...prev, [index]: selectedFile }))
   }
 
   const handleVideoChange = (event: ChangeEvent<HTMLInputElement>, index: number) => {
     const selectedFile = event.target.files?.[0] || null
+    if (selectedFile && !isMediaWithinChunkedLimit(selectedFile.size)) {
+      toastError(formatMaxMediaSizeMessage())
+      event.target.value = ""
+      return
+    }
     setVideos((prev) => ({ ...prev, [index]: selectedFile }))
+  }
+
+  const buildArchivosPayload = async (): Promise<ClientTotemArchivoRef[]> => {
+    if (!selectedTemplateObj || !totem) return []
+
+    const archivos: ClientTotemArchivoRef[] = []
+    const nombreTrim = nombre.trim()
+
+    for (let i = 1; i <= selectedTemplateObj.req.images; i++) {
+      if (imagenes[i]) {
+        archivos.push(
+          await uploadTotemMediaFileClient(imagenes[i]!, `imagen${i}`, nombreTrim)
+        )
+        continue
+      }
+
+      const existing = totem.archivos?.find((a) => slotToImageIndex(a.slot) === i)
+      if (existing?.contentId) {
+        archivos.push({
+          slot: existing.slot,
+          tipo: existing.tipo,
+          contentId: existing.contentId,
+        })
+      }
+    }
+
+    for (let i = 1; i <= selectedTemplateObj.req.videos; i++) {
+      if (videos[i]) {
+        archivos.push(
+          await uploadTotemMediaFileClient(videos[i]!, `video${i}`, nombreTrim)
+        )
+        continue
+      }
+
+      const existing = totem.archivos?.find((a) => slotToVideoIndex(a.slot) === i)
+      if (existing?.contentId) {
+        archivos.push({
+          slot: existing.slot,
+          tipo: existing.tipo,
+          contentId: existing.contentId,
+        })
+      }
+    }
+
+    return archivos
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,28 +313,22 @@ export function EditTotemSheet({
     showLoading("Guardando cambios...")
 
     try {
-      const formData = new FormData()
-
-      formData.append("nombre", nombre.trim())
-      formData.append("campus_id", selectedSede)
-      formData.append("plantilla", selectedTemplate)
-      formData.append("estado", selectedEstado)
-      formData.append("usuario", credentials.username.trim())
-      formData.append("contraseña", credentials.password)
-      formData.append("mostrarDesde", fechaInicioContenido)
-      formData.append("mostrarHasta", fechaFinContenido)
-
-      Object.entries(imagenes).forEach(([index, file]) => {
-        if (file) formData.append(`imagen${index}`, file)
-      })
-
-      Object.entries(videos).forEach(([index, file]) => {
-        if (file) formData.append(`video${index}`, file)
-      })
+      const archivos = await buildArchivosPayload()
 
       const response = await fetchWithAuth(`/api/totems/${totem.id}`, {
         method: "PUT",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          campus_id: selectedSede,
+          plantilla: selectedTemplate,
+          estado: selectedEstado,
+          usuario: credentials.username.trim(),
+          contraseña: credentials.password,
+          mostrarDesde: fechaInicioContenido,
+          mostrarHasta: fechaFinContenido,
+          archivos,
+        }),
       })
 
       if (!response.ok) {
@@ -287,7 +346,9 @@ export function EditTotemSheet({
       handleSheetOpenChange(false)
     } catch (error) {
       if (error instanceof Error && error.message === "SESSION_EXPIRED") return
-      toastError("Error de conexión al guardar los cambios.")
+      toastError(
+        error instanceof Error ? error.message : "Error de conexión al guardar los cambios."
+      )
     } finally {
       setIsSubmitting(false)
       hideLoading()

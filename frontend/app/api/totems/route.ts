@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/mongodb"
 import { requireAuth, getTotemListFilter, resolveCampusIdForWrite, canAccessCampus } from "@/lib/auth"
 import { processTotemMediaFromForm } from "@/lib/totem-media"
+import { parseArchivosPayload } from "@/lib/totem-media-upload"
 import { normalizeCampusId, normalizePlantillaId } from "@/lib/totem-labels"
 import { getTemplateRequirements } from "@/lib/totem-templates"
 import Totem from "@/models/Totem"
@@ -48,6 +49,20 @@ export async function GET(request: Request) {
   }
 }
 
+type TotemCreatePayload = {
+  nombre?: string
+  totem_id?: string
+  campus_id?: string
+  plantilla?: string
+  estado?: string
+  usuario?: string
+  contraseña?: string
+  contrasena?: string
+  mostrarDesde?: string
+  mostrarHasta?: string
+  archivos?: unknown
+}
+
 export async function POST(request: Request) {
   const authResult = await requireAuth(request)
   if ("response" in authResult) return authResult.response
@@ -55,17 +70,58 @@ export async function POST(request: Request) {
   try {
     await connectDB()
 
-    const formData = await request.formData()
+    const contentType = request.headers.get("content-type") || ""
+    const isJson = contentType.includes("application/json")
 
-    const nombre = ((formData.get("nombre") as string) || "").trim()
-    let totem_id = (formData.get("totem_id") as string)?.trim()
+    let nombre = ""
+    let totem_id = ""
+    let campusInput = ""
+    let plantilla = ""
+    let estado = "Activo"
+    let usuario = ""
+    let contraseña = ""
+    let mostrarDesde = ""
+    let mostrarHasta = ""
+    let archivosGuardados: Awaited<ReturnType<typeof processTotemMediaFromForm>> = []
+
+    if (isJson) {
+      let body: TotemCreatePayload
+      try {
+        body = (await request.json()) as TotemCreatePayload
+      } catch {
+        return NextResponse.json({ error: "JSON inválido." }, { status: 400 })
+      }
+
+      nombre = (body.nombre || "").trim()
+      totem_id = (body.totem_id || "").trim()
+      campusInput = body.campus_id || ""
+      plantilla = normalizePlantillaId(body.plantilla || "")
+      estado = (body.estado || "Activo").trim()
+      usuario = (body.usuario || "").trim()
+      contraseña = (body.contraseña || body.contrasena || "").trim()
+      mostrarDesde = body.mostrarDesde || ""
+      mostrarHasta = body.mostrarHasta || ""
+      archivosGuardados = parseArchivosPayload(body.archivos)
+    } else {
+      const formData = await request.formData()
+
+      nombre = ((formData.get("nombre") as string) || "").trim()
+      totem_id = (formData.get("totem_id") as string)?.trim() || ""
+      campusInput = (formData.get("campus_id") as string) || ""
+      plantilla = normalizePlantillaId(formData.get("plantilla") as string)
+      estado = ((formData.get("estado") as string) || "Activo").trim()
+      usuario = ((formData.get("usuario") as string) || "").trim()
+      contraseña = readPasswordFromFormData(formData).trim()
+      mostrarDesde = (formData.get("mostrarDesde") as string) || ""
+      mostrarHasta = (formData.get("mostrarHasta") as string) || ""
+      archivosGuardados = await processTotemMediaFromForm(formData, nombre)
+    }
+
     if (!totem_id) {
       totem_id = `TOTEM-${crypto.randomUUID()}`
     }
-    const campusNormalized = resolveCampusIdForWrite(
-      authResult.auth,
-      formData.get("campus_id") as string
-    )
+
+    const campusNormalized = resolveCampusIdForWrite(authResult.auth, campusInput)
     if (!campusNormalized) {
       return NextResponse.json(
         { error: "No tienes permiso para crear tótems en esta sede." },
@@ -73,12 +129,6 @@ export async function POST(request: Request) {
       )
     }
     const campus_id = await resolveCampusIdForStorage(campusNormalized)
-    const plantilla = normalizePlantillaId(formData.get("plantilla") as string)
-    const estado = ((formData.get("estado") as string) || "Activo").trim()
-    let usuario = ((formData.get("usuario") as string) || "").trim()
-    let contraseña = readPasswordFromFormData(formData).trim()
-    const mostrarDesde = formData.get("mostrarDesde") as string
-    const mostrarHasta = formData.get("mostrarHasta") as string
 
     if (!nombre) {
       return NextResponse.json(
@@ -99,8 +149,6 @@ export async function POST(request: Request) {
       usuario = usuario || generated.usuario
       contraseña = contraseña || generated.contraseña
     }
-
-    const archivosGuardados = await processTotemMediaFromForm(formData, nombre)
 
     const req = getTemplateRequirements(plantilla)
     const imageCount = archivosGuardados.filter((a) => a.tipo === "imagen").length
