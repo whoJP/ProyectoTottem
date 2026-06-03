@@ -39,6 +39,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export interface Totem {
   id: string
+  /** Identificador de negocio del tótem (TOTEM-xxx), para notificaciones y kiosk */
+  totemRefId: string
   nombre: string
   tiempoTranscurrido: string
   sede: string

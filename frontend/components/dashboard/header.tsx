@@ -5,6 +5,7 @@ import { LogOut, LayoutDashboard, User, ChevronDown } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { getSedeNameFromId } from "@/lib/totem-labels"
 import { getStoredAdmin, isStoredSuperAdmin } from "@/lib/fetch-auth"
+import { logoutAndRedirectToLogin } from "@/lib/session"
 import { UserProfileModal } from "./user-profile-modal"
 import {
   DropdownMenu,
@@ -38,9 +39,7 @@ export function Header() {
   }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("admin")
-    window.location.href = "/login"
+    logoutAndRedirectToLogin()
   }
 
   const initials = adminNombre

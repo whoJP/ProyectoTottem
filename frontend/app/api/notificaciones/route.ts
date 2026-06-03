@@ -8,6 +8,7 @@ import {
 } from "@/lib/notification-access"
 import { resolveNotificationFileId } from "@/lib/resolve-notification-file"
 import Notification from "@/models/Notification"
+import { resolveTotemNotificationId } from "@/lib/resolve-totem-notification-id"
 
 export const runtime = "nodejs"
 
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     const count = await Notification.countDocuments(notifFilter)
     const itemsRaw = await Notification.find(notifFilter)
       .sort({ createdAt: -1 })
-      .limit(50)
+      .limit(200)
       .lean()
 
     const items = await Promise.all(
@@ -60,7 +61,8 @@ export async function POST(request: Request) {
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData()
-      const totem_id = (formData.get("totem_id") as string)?.trim()
+      const totem_idRaw = (formData.get("totem_id") as string)?.trim()
+      const totem_id = await resolveTotemNotificationId(totem_idRaw)
       const fechaInicio = (formData.get("fechaInicio") as string)?.trim()
       const fechaFin = (formData.get("fechaFin") as string)?.trim()
       const mensaje = (formData.get("mensaje") as string)?.trim()
@@ -104,7 +106,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { totem_id, fechaInicio, fechaFin, mensaje, archivo } = body
+    const { totem_id: totemIdRaw, fechaInicio, fechaFin, mensaje, archivo } = body
+    const totem_id = await resolveTotemNotificationId(String(totemIdRaw || ""))
 
     if (!totem_id || !fechaInicio || !fechaFin || !mensaje) {
       return NextResponse.json(

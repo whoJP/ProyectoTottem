@@ -18,7 +18,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,6 +38,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { fetchWithAuth, toastError, toastSuccess } from "@/lib/fetch-auth"
+import {
+  NOTIFICATIONS_REFRESH_EVENT,
+  notifyNotificationsChanged,
+} from "@/lib/notifications-refresh"
 import {
   toDateInputValue,
   validateNotificationDateRange,
@@ -131,6 +134,14 @@ export function NotificationsSheet({
     loadNotifications()
   }, [open, loadNotifications])
 
+  useEffect(() => {
+    const onRefresh = () => {
+      if (open) loadNotifications()
+    }
+    window.addEventListener(NOTIFICATIONS_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(NOTIFICATIONS_REFRESH_EVENT, onRefresh)
+  }, [open, loadNotifications])
+
   const openEdit = (item: NotificationItem) => {
     setEditing(item)
     setEditForm({
@@ -201,6 +212,7 @@ export function NotificationsSheet({
         return
       }
       toastSuccess("Notificación actualizada")
+      notifyNotificationsChanged()
       setEditing(null)
       await loadNotifications()
     } catch (error) {
@@ -228,6 +240,7 @@ export function NotificationsSheet({
         return
       }
       toastSuccess("Notificación eliminada")
+      notifyNotificationsChanged()
       setDeleteTarget(null)
       await loadNotifications()
     } catch (error) {
@@ -243,7 +256,7 @@ export function NotificationsSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-md bg-card border-border flex flex-col gap-0 p-0"
+          className="w-full sm:max-w-md bg-card border-border flex h-full max-h-[100dvh] flex-col gap-0 p-0"
         >
           <SheetHeader className="border-b border-border px-6 py-5 text-left">
             <div className="flex items-center gap-3">
@@ -259,7 +272,7 @@ export function NotificationsSheet({
             </div>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 px-4 py-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4">
             {isLoading ? (
               <div className="flex h-40 items-center justify-center">
                 <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
@@ -336,7 +349,7 @@ export function NotificationsSheet({
                 ))}
               </ul>
             )}
-          </ScrollArea>
+          </div>
         </SheetContent>
       </Sheet>
 

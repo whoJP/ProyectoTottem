@@ -42,6 +42,7 @@ import { TOTEM_TEMPLATES, getTemplateById } from "@/lib/totem-templates"
 import { buildMediaMapsFromArchivos } from "@/lib/totem-archivos"
 import { copyToClipboard } from "@/lib/copy-to-clipboard"
 import { fetchWithAuth, toastError, toastSuccess } from "@/lib/fetch-auth"
+import { notifyNotificationsChanged } from "@/lib/notifications-refresh"
 import { TotemMediaSlot } from "@/components/dashboard/totem-media-slot"
 import { useLoadingOverlay } from "@/components/dashboard/loading-overlay-context"
 import type { Totem } from "./totems-table"
@@ -179,7 +180,7 @@ export function EditTotemSheet({
     }
 
     const formData = new FormData()
-    formData.append("totem_id", totem?.id || "")
+    formData.append("totem_id", totem?.totemRefId || totem?.id || "")
     formData.append("fechaInicio", notificacionInicio)
     formData.append("fechaFin", notificacionFin)
     formData.append("mensaje", notificationMessage)
@@ -196,6 +197,7 @@ export function EditTotemSheet({
 
       if (response.ok) {
         toastSuccess("Notificación enviada correctamente")
+        notifyNotificationsChanged()
         setNotificationMessage("")
         setNotificacionInicio("")
         setNotificacionFin("")

@@ -1,6 +1,7 @@
 "use client"
 
 import { toast } from "sonner"
+import { clearSessionStorage, logoutAndRedirectToLogin } from "@/lib/session"
 
 export type StoredAdmin = {
   id?: string
@@ -26,12 +27,11 @@ export function isStoredSuperAdmin(admin: StoredAdmin | null = getStoredAdmin())
 }
 
 export function clearSessionAndRedirectToLogin(message?: string) {
-  localStorage.removeItem("token")
-  localStorage.removeItem("admin")
+  clearSessionStorage()
   if (message) {
     sessionStorage.setItem("login_redirect_message", message)
   }
-  window.location.href = "/login"
+  logoutAndRedirectToLogin()
 }
 
 export async function fetchWithAuth(

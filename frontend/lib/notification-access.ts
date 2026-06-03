@@ -2,6 +2,7 @@ import type { AuthPayload } from "@/lib/auth"
 import { getTotemListFilter, isSuperAdmin } from "@/lib/auth"
 import Totem from "@/models/Totem"
 import Notification from "@/models/Notification"
+import { resolveTotemNotificationId } from "@/lib/resolve-totem-notification-id"
 
 /** Identificadores de tótems visibles para el admin (null = todos, superadmin). */
 export async function getAllowedTotemIdentifiers(
@@ -10,14 +11,14 @@ export async function getAllowedTotemIdentifiers(
   if (isSuperAdmin(auth)) return null
 
   const totems = await Totem.find(getTotemListFilter(auth))
-    .select("totem_id nombre")
+    .select("totem_id nombre _id")
     .lean()
 
   const ids = new Set<string>()
   for (const t of totems) {
+    ids.add(String(t._id))
     if (t.totem_id) ids.add(String(t.totem_id))
     if (t.nombre) ids.add(String(t.nombre))
-    if (t._id) ids.add(String(t._id))
   }
   return [...ids]
 }
@@ -39,5 +40,10 @@ export async function canAccessNotification(
 
   const allowed = await getAllowedTotemIdentifiers(auth)
   if (allowed === null) return true
-  return allowed.includes(String(doc.totem_id))
+
+  const totemId = String(doc.totem_id)
+  if (allowed.includes(totemId)) return true
+
+  const normalized = await resolveTotemNotificationId(totemId)
+  return allowed.includes(normalized)
 }

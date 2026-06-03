@@ -5,6 +5,7 @@ import { Monitor, MonitorOff, Wrench, Upload, Bell, ChevronRight, RefreshCw } fr
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { fetchWithAuth } from "@/lib/fetch-auth"
+import { NOTIFICATIONS_REFRESH_EVENT } from "@/lib/notifications-refresh"
 import { cn } from "@/lib/utils"
 import { NotificationsSheet } from "./notifications-sheet"
 import type { Totem } from "./totems-table"
@@ -84,23 +85,23 @@ export function StatsCards({
   const [notificationCount, setNotificationCount] = useState(0)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
-
+  const refreshNotificationCount = () => {
     fetchWithAuth("/api/notificaciones")
       .then((res) => res.json())
       .then((data) => {
-        if (!cancelled && typeof data?.count === "number") {
+        if (typeof data?.count === "number") {
           setNotificationCount(data.count)
         }
       })
-      .catch(() => {
-        if (!cancelled) setNotificationCount(0)
-      })
+      .catch(() => setNotificationCount(0))
+  }
 
-    return () => {
-      cancelled = true
-    }
+  useEffect(() => {
+    refreshNotificationCount()
+
+    const onRefresh = () => refreshNotificationCount()
+    window.addEventListener(NOTIFICATIONS_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(NOTIFICATIONS_REFRESH_EVENT, onRefresh)
   }, [totems.length])
 
   const stats = [

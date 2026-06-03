@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import InputField from "./InputField";
 import RecoveryModal from "./RecoveryModal";
 import { IconUser, IconLock, IconAlertCircle } from "./icons";
+import { registerSession } from "@/lib/session";
 
 const MAX_USUARIO    = 30;
 const MIN_CONTRASENA = 8;
@@ -87,6 +88,7 @@ const LoginCard = () => {
             setSubmitResult("success");
             localStorage.setItem("token", data.token);
             localStorage.setItem("admin", JSON.stringify(data.admin));
+            registerSession();
 
             // sin env: dashboard en /dashboard. con env absoluto: otro origen
             const raw = process.env.NEXT_PUBLIC_AFTER_LOGIN_URL?.trim();

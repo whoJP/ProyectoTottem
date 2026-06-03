@@ -85,6 +85,7 @@ export default function DashboardPage() {
 
         return {
           id: String(item._id),
+          totemRefId: String(item.totem_id ?? item._id),
           nombre: String(item.nombre),
           tiempoTranscurrido: formatSyncStatus(estado, updatedAt),
           campusId,
