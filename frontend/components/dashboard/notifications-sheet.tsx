@@ -1,13 +1,15 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   Bell,
   Calendar,
+  FileUp,
   Loader2,
   Monitor,
   Pencil,
   Trash2,
+  X,
 } from "lucide-react"
 import {
   Sheet,
@@ -37,6 +39,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { fetchWithAuth, toastError, toastSuccess } from "@/lib/fetch-auth"
+import {
+  toDateInputValue,
+  validateNotificationDateRange,
+} from "@/lib/notification-dates"
 import { NotificationFileActions } from "./notification-file-actions"
 
 export type NotificationItem = {
@@ -78,11 +84,13 @@ export function NotificationsSheet({
   const [isLoading, setIsLoading] = useState(false)
   const [editing, setEditing] = useState<NotificationItem | null>(null)
   const [editForm, setEditForm] = useState({
-    totem_id: "",
     fechaInicio: "",
     fechaFin: "",
     mensaje: "",
   })
+  const [replacementFile, setReplacementFile] = useState<File | null>(null)
+  const [removeFile, setRemoveFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<NotificationItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -126,17 +134,29 @@ export function NotificationsSheet({
   const openEdit = (item: NotificationItem) => {
     setEditing(item)
     setEditForm({
-      totem_id: item.totem_id,
-      fechaInicio: item.fechaInicio,
-      fechaFin: item.fechaFin,
+      fechaInicio: toDateInputValue(item.fechaInicio),
+      fechaFin: toDateInputValue(item.fechaFin),
       mensaje: item.mensaje,
     })
+    setReplacementFile(null)
+    setRemoveFile(false)
   }
+
+  const hasExistingFile =
+    editing &&
+    editing.archivo &&
+    editing.archivo !== "no" &&
+    !removeFile
 
   const handleSaveEdit = async () => {
     if (!editing) return
-    if (!editForm.totem_id.trim() || !editForm.fechaInicio || !editForm.fechaFin) {
-      toastError("Completa tótem, fecha inicio y fecha fin.")
+
+    const dateError = validateNotificationDateRange(
+      editForm.fechaInicio,
+      editForm.fechaFin
+    )
+    if (dateError) {
+      toastError(dateError)
       return
     }
     if (!editForm.mensaje.trim()) {
@@ -146,11 +166,31 @@ export function NotificationsSheet({
 
     setIsSaving(true)
     try {
-      const res = await fetchWithAuth(`/api/notificaciones/${editing._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
-      })
+      let res: Response
+
+      if (replacementFile || removeFile) {
+        const formData = new FormData()
+        formData.append("fechaInicio", editForm.fechaInicio)
+        formData.append("fechaFin", editForm.fechaFin)
+        formData.append("mensaje", editForm.mensaje.trim())
+        if (removeFile) formData.append("removeArchivo", "1")
+        if (replacementFile) formData.append("archivo", replacementFile)
+
+        res = await fetchWithAuth(`/api/notificaciones/${editing._id}`, {
+          method: "PATCH",
+          body: formData,
+        })
+      } else {
+        res = await fetchWithAuth(`/api/notificaciones/${editing._id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fechaInicio: editForm.fechaInicio,
+            fechaFin: editForm.fechaFin,
+            mensaje: editForm.mensaje.trim(),
+          }),
+        })
+      }
       const data = await res.json().catch(() => null)
       if (!res.ok) {
         toastError(
@@ -307,20 +347,25 @@ export function NotificationsSheet({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>ID / referencia del tótem</Label>
-              <Input
-                value={editForm.totem_id}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, totem_id: e.target.value }))
-                }
-              />
+              <Label className="text-muted-foreground">Tótem asociado</Label>
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+                <Monitor className="h-4 w-4 shrink-0 text-blue-400" />
+                <span className="text-sm font-mono text-foreground truncate">
+                  {editing?.totem_id}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                El tótem no se puede cambiar desde aquí.
+              </p>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Fecha inicio</Label>
                 <Input
                   type="date"
                   value={editForm.fechaInicio}
+                  max={editForm.fechaFin || undefined}
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, fechaInicio: e.target.value }))
                   }
@@ -331,12 +376,14 @@ export function NotificationsSheet({
                 <Input
                   type="date"
                   value={editForm.fechaFin}
+                  min={editForm.fechaInicio || undefined}
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, fechaFin: e.target.value }))
                   }
                 />
               </div>
             </div>
+
             <div className="space-y-2">
               <Label>Mensaje</Label>
               <Input
@@ -345,6 +392,102 @@ export function NotificationsSheet({
                   setEditForm((f) => ({ ...f, mensaje: e.target.value }))
                 }
               />
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+              <Label>Archivo adjunto</Label>
+
+              {replacementFile ? (
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate text-foreground">
+                    Nuevo: {replacementFile.name}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => {
+                      setReplacementFile(null)
+                      if (fileInputRef.current) fileInputRef.current.value = ""
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : hasExistingFile && editing ? (
+                <NotificationFileActions
+                  notificationId={editing._id}
+                  fileName={editing.archivo!}
+                  contentType={editing.archivoContentType}
+                  archivoDisponible={
+                    editing.archivoDisponible ?? Boolean(editing.archivoFileId)
+                  }
+                />
+              ) : removeFile ? (
+                <p className="text-xs text-muted-foreground">
+                  El archivo se quitará al guardar.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Esta notificación no tiene archivo adjunto.
+                </p>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*,video/*,.pdf,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setReplacementFile(file)
+                    setRemoveFile(false)
+                  }
+                }}
+              />
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <FileUp className="h-3.5 w-3.5" />
+                  {hasExistingFile || replacementFile
+                    ? "Cambiar archivo"
+                    : "Agregar archivo"}
+                </Button>
+                {hasExistingFile && !replacementFile && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs text-red-500 hover:text-red-600"
+                    onClick={() => {
+                      setRemoveFile(true)
+                      setReplacementFile(null)
+                      if (fileInputRef.current) fileInputRef.current.value = ""
+                    }}
+                  >
+                    Quitar archivo
+                  </Button>
+                )}
+                {removeFile && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => setRemoveFile(false)}
+                  >
+                    Deshacer quitar
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>

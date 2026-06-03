@@ -2,12 +2,22 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth"
 import { canAccessNotification } from "@/lib/notification-access"
-import { eliminarArchivoGridFS } from "@/lib/gridfs"
+import { validateNotificationDateRange } from "@/lib/notification-dates"
+import { eliminarArchivoGridFS, subirArchivoAGridFS } from "@/lib/gridfs"
 import Notification from "@/models/Notification"
 
 export const runtime = "nodejs"
 
 type RouteContext = { params: Promise<{ id: string }> }
+
+async function deleteNotificationFile(fileId: unknown) {
+  if (!fileId) return
+  try {
+    await eliminarArchivoGridFS(fileId as import("mongodb").ObjectId)
+  } catch (err) {
+    console.warn("No se pudo eliminar archivo anterior de notificación:", err)
+  }
+}
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   const authResult = await requireAuth(request)
@@ -24,39 +34,85 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       )
     }
 
-    const body = await request.json()
-    const { totem_id, fechaInicio, fechaFin, mensaje } = body as {
-      totem_id?: string
-      fechaInicio?: string
-      fechaFin?: string
-      mensaje?: string
-    }
-
-    const update: Record<string, string> = {}
-    if (totem_id?.trim()) update.totem_id = totem_id.trim()
-    if (fechaInicio?.trim()) update.fechaInicio = fechaInicio.trim()
-    if (fechaFin?.trim()) update.fechaFin = fechaFin.trim()
-    if (mensaje?.trim()) update.mensaje = mensaje.trim()
-
-    if (Object.keys(update).length === 0) {
-      return NextResponse.json(
-        { error: "No hay campos para actualizar." },
-        { status: 400 }
-      )
-    }
-
-    const doc = await Notification.findByIdAndUpdate(id, update, {
-      new: true,
-    }).lean()
-
-    if (!doc) {
+    const existing = await Notification.findById(id)
+    if (!existing) {
       return NextResponse.json(
         { error: "Notificación no encontrada." },
         { status: 404 }
       )
     }
 
-    return NextResponse.json({ ...doc, _id: String(doc._id) })
+    const contentType = request.headers.get("content-type") || ""
+    let fechaInicio = existing.fechaInicio as string
+    let fechaFin = existing.fechaFin as string
+    let mensaje = existing.mensaje as string
+    let archivoFile: File | null = null
+    let removeArchivo = false
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData()
+      const fi = (formData.get("fechaInicio") as string)?.trim()
+      const ff = (formData.get("fechaFin") as string)?.trim()
+      const msg = (formData.get("mensaje") as string)?.trim()
+      if (fi) fechaInicio = fi
+      if (ff) fechaFin = ff
+      if (msg) mensaje = msg
+      removeArchivo = formData.get("removeArchivo") === "1"
+      const file = formData.get("archivo")
+      if (file instanceof File && file.size > 0) {
+        archivoFile = file
+      }
+    } else {
+      const body = await request.json()
+      if (body.fechaInicio?.trim()) fechaInicio = body.fechaInicio.trim()
+      if (body.fechaFin?.trim()) fechaFin = body.fechaFin.trim()
+      if (body.mensaje?.trim()) mensaje = body.mensaje.trim()
+      if (body.removeArchivo === true || body.removeArchivo === "1") {
+        removeArchivo = true
+      }
+    }
+
+    const dateError = validateNotificationDateRange(fechaInicio, fechaFin)
+    if (dateError) {
+      return NextResponse.json({ error: dateError }, { status: 400 })
+    }
+
+    if (!mensaje.trim()) {
+      return NextResponse.json(
+        { error: "El mensaje no puede estar vacío." },
+        { status: 400 }
+      )
+    }
+
+    existing.fechaInicio = fechaInicio
+    existing.fechaFin = fechaFin
+    existing.mensaje = mensaje
+
+    if (removeArchivo) {
+      await deleteNotificationFile(existing.archivoFileId)
+      existing.archivo = "no"
+      existing.archivoFileId = null
+      existing.archivoContentType = null
+    } else if (archivoFile) {
+      await deleteNotificationFile(existing.archivoFileId)
+      const fileId = await subirArchivoAGridFS(
+        archivoFile,
+        String(existing.totem_id)
+      )
+      existing.archivoFileId = fileId
+      existing.archivoContentType =
+        archivoFile.type || "application/octet-stream"
+      existing.archivo = archivoFile.name
+    }
+
+    await existing.save()
+
+    const doc = existing.toObject()
+    return NextResponse.json({
+      ...doc,
+      _id: String(doc._id),
+      archivoDisponible: Boolean(doc.archivoFileId),
+    })
   } catch (error) {
     console.error("Error PATCH notificación:", error)
     return NextResponse.json(
@@ -89,14 +145,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
       )
     }
 
-    if (doc.archivoFileId) {
-      try {
-        await eliminarArchivoGridFS(doc.archivoFileId)
-      } catch (err) {
-        console.warn("No se pudo eliminar archivo de notificación:", err)
-      }
-    }
-
+    await deleteNotificationFile(doc.archivoFileId)
     await Notification.findByIdAndDelete(id)
 
     return NextResponse.json({ ok: true })
